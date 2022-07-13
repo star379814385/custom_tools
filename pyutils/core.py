@@ -64,7 +64,7 @@ def glob_dir(
 
     Examples:
     # glob current directory, get .py files without *version.py like files
-    >>> glob_dir(".", include_patterns=["*.py"], exclude_patterns=["*version.py"])
+    >>> glob_dir("", include_patterns=["*.py"], exclude_patterns=["*version.py"])
     """
     dir_ = Path(dir_)
 

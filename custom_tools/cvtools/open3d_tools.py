@@ -96,7 +96,7 @@ def get_rotation_matrix_from_normals(normals):
     normals = normals / (normals ** 2).sum() ** 0.5
     axis_angle = np.arccos(normals)
     print(axis_angle)
-    rm = o3d.geometry.PointCloud.get_rotation_matrix_from_axis_angle(axis_angle)
+    rm = o3d.geometry.PointCloud.get_rotation_matrix_from_xyz(axis_angle)
     return rm
 
 

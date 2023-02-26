@@ -4,7 +4,7 @@
 from functools import wraps
 from timeit import default_timer
 
-from loguru import logger
+
 
 __all__ = [
     "TimingError",
@@ -93,7 +93,7 @@ class Timer(object):
     def _print_cost(msg, start, stop):
         elapsed_time = stop - start
 
-        logger.info(f"{msg} cost {elapsed_time:.4f} s")
+        # logger.info(f"{msg} cost {elapsed_time:.4f} s")
 
     def _check_started(self):
         if self._trigger_start is None:

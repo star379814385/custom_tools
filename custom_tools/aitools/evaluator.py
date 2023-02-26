@@ -83,16 +83,27 @@ class InsSegEvaluator(DetEvaluator):
         self.dts_list.append(coco_mask.encode(dts_nxhxw))
 
 class KeyPointEvaluator:
-    def __init__(self):
+    def __init__(self, points_num):
+        self.points_num = points_num
         self.gts_list = []
         self.dts_list = []
+        self.error_list = []
         self.metric = None
 
-    def add_data(self):
-        pass
+    def add_data(self, gt_mxpx2, dt_nxpx2):
+        assert gt_mxpx2.ndim == dt_nxpx2.ndim == 3
+        assert gt_mxpx2.shape[1] == dt_nxpx2.shape[1] == self.points_num
+        self.gts_list.append(gt_mxpx2)
+        self.dts_list.append(dt_nxpx2)
 
-    def evaluator(self):
-        pass
+    def evaluate(self):
+        for gt_mxpx2, dt_nxpx2 in zip(self.gts_list, self.dts_list):
+            m = gt_mxpx2.shape[0]
+            n = dt_nxpx2.shape[0]
+            gt_mnxpx2 = np.repeat(gt_mxpx2[None], repeats=n, axis=0).reshape((m*n, p, 2))
+            dt_mnxpx2 = np.repeat()
+
+
 
     def get_metric(self):
         pass
@@ -101,6 +112,10 @@ class KeyPointEvaluator:
         self.gts_list = []
         self.dts_ilst = []
         self.metric = None
+
+
+
+
 
 
 class ContourEvaluator:

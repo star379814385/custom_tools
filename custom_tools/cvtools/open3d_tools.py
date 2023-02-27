@@ -1,48 +1,50 @@
 import time
-
 import cv2
 import open3d as o3d
 import numpy as np
 import math
 
-def get_pcd_img_hw(pcd_path):
-    img_h = None
-    img_w = None
-    with open(pcd_path, "rb") as f:
-        for i in range(11):
-            data = f.readline().decode(encoding="utf-8")
-            if data.startswith("HEIGHT"):
-                img_h = int(data[6:].strip(" "))
-            elif data.startswith("WIDTH"):
-                img_w = int(data[5:].strip(" "))
-    return img_h, img_w
 
 
-def get_pcd_panorama(pcd, img_hw, return_img=False):
-    panorama = np.array(pcd.colors, dtype=np.float32).reshape((*img_hw, 3))
-    if not return_img:
-        return panorama
-    else:
-        return (panorama * 255).astype(np.uint8)
+class PointCloud:
+    def __init__(self, pcd: o3d.geometry.PointCloud, height, width):
+        self.pcd = pcd
+        self.height = height
+        self.width = width
 
+    def get_pano(self, return_as_uint8=True):
+        pano = np.array(self.pcd.colors, dtype=np.float32).reshape((self.height, self.width, 3))
+        if return_as_uint8:
+            return (pano * 255).astype(np.uint8)
+        else:
+            return pano
 
-def get_pcd_normals(pcd, img_hw, down_sample=1, return_img=False):
-    points = np.array(pcd.points, dtype=np.float32).reshape((*img_hw, 3))
-    # pad
-    down_points = points[::down_sample, ::down_sample]
-    down_hw = down_points.shape[:2]
-    down_pcd = o3d.geometry.PointCloud()
-    down_pcd.points = o3d.utility.Vector3dVector(down_points.reshape(-1, 3))
-    down_pcd.estimate_normals()
-    down_pcd.orient_normals_towards_camera_location(camera_location=np.array([0, 0, 0]))
-    down_normals = np.array(down_pcd.normals, dtype=np.float32).reshape((*down_hw, 3))
-
-    normals = cv2.resize(down_normals, dsize=(img_hw[1], img_hw[0]), interpolation=cv2.INTER_NEAREST)
-    if not return_img:
+    def get_normal(self):
+        self.pcd.estimate_normals()
+        self.pcd.orient_normals_towards_camera_location(camera_location=np.array([0, 0, 0]))
+        normals = np.array(self.pcd.normals, dtype=np.float32).reshape((-1, 3))
         return normals
-    else:
-        return (((normals * 0.5) + 0.5) * 255).astype(np.uint8)
 
+    @classmethod
+    def build_from_pcd_path(cls, pcd_path):
+        pcd = o3d.io.read_point_cloud(pcd_path)
+        h, w = PointCloud.get_pcd_img_hw(pcd_path)
+        if h is None or w is None:
+            raise Exception(f"please check data: {pcd_path}.")
+        return cls(pcd, h, w)
+
+    @staticmethod
+    def get_pcd_img_hw(pcd_path):
+        img_h = None
+        img_w = None
+        with open(pcd_path, "rb") as f:
+            for i in range(11):
+                data = f.readline().decode(encoding="utf-8")
+                if data.startswith("HEIGHT"):
+                    img_h = int(data[6:].strip(" "))
+                elif data.startswith("WIDTH"):
+                    img_w = int(data[5:].strip(" "))
+        return img_h, img_w
 
 def get_circle_projection_and_depth(pcd, m_per_pixel=0.005, project_depth=None, return_proj_img=True):
     pcd_points = np.array(pcd.points, dtype=np.float32)

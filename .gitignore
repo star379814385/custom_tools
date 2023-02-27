@@ -132,3 +132,5 @@ dmypy.json
 test_codes/*
 workspace/*
 bupi.py
+
+.idea

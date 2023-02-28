@@ -1,1 +1,1 @@
-from .core import *
+from .labelme_dataset import *

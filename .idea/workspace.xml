@@ -2,38 +2,20 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="59adc34c-21e8-4701-b4e2-d2892a839560" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/custom_tools.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/custom_tools.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aitools/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aitools/cal_tools.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aitools/evaluator.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aitools/labelme_tools.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvtools/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvtools/data_synthesize/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvtools/data_synthesize/defect_synthesize.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvtools/data_synthesize/synthesize_img.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvtools/open3d_tools.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvutils/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvutils/fileio.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvutils/imgproc/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvutils/imgproc/core.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvutils/imgproc/drawing.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvutils/imgproc/roi/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvutils/imgproc/roi/base_roi.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvutils/imgproc/roi/polygon_roi.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvutils/imgproc/roi/rect_roi.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvutils/vis.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyutils/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyutils/core.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyutils/fileio.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyutils/timer.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -47,12 +29,18 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "last_opened_file_path": "/home/rainfylee/desktop/code/custom_tools/custom_tools/cvtools"
   }
-}</component>
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/custom_tools/cvtools" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="test_labelme_tools" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="custom_tools" />
@@ -108,7 +96,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/test_codes/test_labelme_tools.py</url>
-          <line>8</line>
+          <line>5</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
       </breakpoints>

@@ -129,8 +129,5 @@ dmypy.json
 .pyre/
 
 # custom
-test_codes/*
-workspace/*
-bupi.py
 
 .idea

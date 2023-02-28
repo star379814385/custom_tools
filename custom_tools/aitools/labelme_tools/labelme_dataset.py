@@ -1,11 +1,15 @@
 import copy
+import logging
 
 import cv2
 
-from ...pyutils.fileio import load_json, dump_json
+from ...pyutils.fileio import load_json, dump_json, create_directory_if_parent_not_exist
 from typing import Union, List
 from pathlib import Path
 import numpy as np
+import imagesize
+import warnings
+from tqdm import tqdm
 
 
 class LabelmeShape:
@@ -20,11 +24,11 @@ class LabelmeShape:
         self.area = None
 
     def update_points_npy(self):
-        return np.array(self.points, dtype=np.float64).reshape((-1, 2))
+        self.points_npy = np.array(self.points, dtype=np.float64).reshape((-1, 2))
 
     def get_hw(self):
         if self.points_npy is None:
-            self.points_npy = self.update_points_npy()
+            self.update_points_npy()
         h, w = np.ptp(self.points_npy, axis=0)
         return h, w
 
@@ -110,8 +114,22 @@ class LabelmeData:
             )
         return cate_contours_list
 
-    def check_data(self, data_root):
-        pass
+
+
+    def check_data(self, img_suffix=".png"):
+        # label_path 和 image_path是否对应
+        if Path(self.label_path).stem != Path(self.label_path).stem:
+            error = "图像名称与标注名称不一致"
+            return False, error
+        image_path = str(Path(self.label_path).with_suffix(img_suffix))
+        if not Path(image_path).exists():
+            error = "不存在对应图像数据"
+            return False, error
+        w, h = imagesize.get(image_path)
+        if w != self.image_width or h != self.image_height:
+            error = "对应图像尺寸与标注数据不一致"
+            return False, error
+        return True, None
 
 
 
@@ -134,6 +152,8 @@ class LabelmeData:
             "imageHeight": self.image_height,
             "imageWidth": self.image_width,
         }
+        # todo: create dir if need
+        create_directory_if_parent_not_exist(save_path)
         dump_json(json_datas, save_path)
 
     @classmethod
@@ -165,10 +185,43 @@ class LabelmeDataset:
                     categories_hist[ann.label] += 1
         return categories_hist
 
-    def check_data_list(self):
-        pass
+    def get_categories_shape_types_hist(self):
+        categories_shape_types = dict()
+        for data in self.data_list:
+            for ann in data.shapes:
+                cate_shape_type = (ann.label, ann.shape_type)
+                if categories_shape_types.get(cate_shape_type, None) is None:
+                    categories_shape_types[cate_shape_type] = 1
+                else:
+                    categories_shape_types[cate_shape_type] += 1
+        return categories_shape_types
 
-    def get_coco_annotations(self, categories=None):
+    def find_json_paths(self, category:Union[tuple, None] = None, shape_type: Union[tuple, None] = None):
+        # 获取同时符合以上条件的标注文件，一般为了二次确认标注
+        for data in self.data_list:
+            ids = list(range(len(data.shapes)))
+            if category is not None:
+                ids = [id_ for id_ in ids if data.shapes[id_].label == category]
+            if shape_type is not None:
+                ids = [id_ for id_ in ids if data.shapes[id_].shape_type == shape_type]
+            if len(ids) > 0:
+                print(data.label_path)
+
+    def check_data_list(self, img_suffix, filter_data=False):
+        flag_list = []
+        for data in self.data_list:
+            flag, error = data.check_data(img_suffix)
+            if not flag:
+                print(f"{error}: {data.label_path}")
+            flag_list.append(flag)
+        if filter_data:
+            self.data_list = [data for data, flag in zip(self.data_list, flag_list) if flag]
+
+    def mapping_categories(self, mapping: dict):
+        for i in range(len(self.data_list)):
+            self.data_list[i].mapping_categories(mapping)
+
+    def get_coco_annotations(self, categories=None, remove_empty=True, strict=True):
         if categories is None:
             categories = set()
             for data in self.data_list:
@@ -195,22 +248,21 @@ class LabelmeDataset:
         image_id = 0
         annotation_id = 0
         for data in self.data_list:
-            cur_image = {
-                "id": image_id,
-                "width": data.image_width,
-                "height": data.image_height,
-                "file_name": data.image_path
-            }
             cur_annotations = []
             cate_contours_list = data.get_categories_contours()
             for cate_contours in cate_contours_list:
                 cate_id = categories_ids.get(cate_contours["label"], None)
                 if cate_id is None:
-                    continue
+                    # 标注存在多余的类别标注
+                    if strict:
+                        raise Exception("存在多余类别标注: {}".format(cate_contours["label"]))
+                    else:
+                        warnings.warn("存在多余类别标注: {}".format(cate_contours["label"]))
+                        continue
                 contours = cate_contours["contours"]
                 ps = np.concatenate(contours, axis=0)
-                x, y, w, h = cv2.boundingRect(ps)
-                area = sum([cv2.contourArea(contour) for contour in contours])
+                x, y, w, h = cv2.boundingRect(ps.astype(np.float32))
+                area = sum([cv2.contourArea(contour.astype(np.float32) ) for contour in contours])
                 ann = {
                     "id": annotation_id,
                     "image_id": image_id,
@@ -222,22 +274,26 @@ class LabelmeDataset:
                 }
                 cur_annotations.append(ann)
                 annotation_id += 1
+            if len(cur_annotations) == 0 and remove_empty:
+                continue
+            cur_image = {
+                "id": image_id,
+                "width": data.image_width,
+                "height": data.image_height,
+                "file_name": data.image_path
+            }
             coco_annotations["images"].append(cur_image)
             coco_annotations["annotations"].extend(cur_annotations)
             image_id += 1
         return coco_annotations
 
-    def save_as_coco_annotations(self, categories, save_path):
-        coco_annotations = self.get_coco_annotations(categories)
-        if not Path(save_path).parent.exists():
-            Path(save_path).parent.mkdir(parents=True)
-        dump_json(coco_annotations, save_path)
 
 
     @classmethod
     def build_from_json_paths(cls, json_paths, **kwargs):
+        print("loading datas......")
         data_list = []
-        for json_path in json_paths:
+        for json_path in tqdm(json_paths):
             json_path = str(json_path)
             try:
                 data = LabelmeData.build_by_json_path(json_path, **kwargs)

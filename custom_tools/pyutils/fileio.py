@@ -6,6 +6,7 @@ import json
 import os
 import pickle as pk
 import sys
+from pathlib import Path
 
 import yaml
 
@@ -18,6 +19,7 @@ __all__ = [
     "dump_json",
     "load_csv",
     "dump_csv",
+    "create_directory_if_parent_not_exist",
     "PK_HIGHEST_PROTOCOL",
     "PK_DEFAULT_PROTOCOL",
     "PK_PROTOCOL_0",
@@ -36,6 +38,9 @@ PK_PROTOCOL_2 = 2
 PK_PROTOCOL_3 = 3
 PK_PROTOCOL_4 = 4
 
+def create_directory_if_parent_not_exist(p):
+    if not Path(p).parent.exists():
+        Path(p).parent.mkdir(parents=True)
 
 def load_yaml(filename, method="r", encoding="utf-8"):
     """

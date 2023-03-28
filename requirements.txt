@@ -1,0 +1,8 @@
+# for window
+pycocotools-windows
+# for linux
+# pycocotools
+tqdm
+opencv-python
+imagesize
+scipy

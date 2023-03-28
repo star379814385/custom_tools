@@ -7,12 +7,15 @@ class CustomDataset1:
         self.img_dir_list = [str(p.parent) for p in Path(data_dir).rglob("..")]
         self.img_suffix = img_suffix
 
-    def split_dataset(self, train_p, val_p, test_p, cover=False):
+
+    def split_dataset(self, train_p, val_p, test_p, cover=False, is_shuffle=False):
         assert train_p + val_p + test_p == 1.0
         for img_dir in self.img_dir_list:
             all_list = [str(img_path.stem) + "\n" for img_path in Path(img_dir).glob(f"*{self.img_suffix}")]
             if len(all_list) == 0:
                 continue
+            if is_shuffle:
+                random.shuffle(all_list)
             val_num = int(val_p * len(all_list))
             test_num = int(test_p * len(all_list))
             train_num = len(all_list) - val_num - test_num

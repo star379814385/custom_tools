@@ -27,6 +27,7 @@ __all__ = [
     "PK_PROTOCOL_2",
     "PK_PROTOCOL_3",
     "PK_PROTOCOL_4",
+    "CsvWriter"
 ]
 
 PK_HIGHEST_PROTOCOL = pk.HIGHEST_PROTOCOL
@@ -214,3 +215,24 @@ def dump_csv(data, filename, method="w", safe_mode=False):
 
     if safe_mode:
         os.rename(temp_file_name, filename)
+
+class CsvWriter:
+    def __init__(self, head):
+        self.head = head
+        self.info_list = []
+
+    def add_data(self, info):
+        assert len(info) == len(self.head)
+        self.info_list.append(info)
+
+    def add_other_data(self, info):
+        self.info_list.append(info)
+
+    def dump_data(self, save_path):
+        assert Path(save_path).suffix == ".csv"
+        if not Path(save_path).parent.exists():
+            Path(save_path).parent.mkdir(parents=True)
+        with open(save_path, encoding="utf-8", mode="w", newline="") as f:
+            csv_w = csv.writer(f)
+            csv_w.writerow(self.head)
+            csv_w.writerows(self.info_list)

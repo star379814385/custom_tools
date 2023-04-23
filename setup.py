@@ -10,9 +10,6 @@ setup(
     # 指定包名，即你需要打包的包名称，要实际在你本地存在哟，它会将指定包名下的所有"*.py"文件进行打包哟，但不会递归去拷贝所有的子包内容。
     # 综上所述，我们如果想要把一个包的所有"*.py"文件进行打包，应该在packages列表写下所有包的层级关系哟~这样就开源将指定包路径的所有".py"文件进行打包!
     packages=[
-        'aitools',
-        "cvtools", "cvtools.data_synthesize",
-        "cvutils", "cvutils.imgproc",
-        "pyutils",
+        'custom_tools',
     ],
 )

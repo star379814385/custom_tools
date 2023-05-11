@@ -302,7 +302,7 @@ class LabelmeDataset:
         create_directory_if_parent_not_exist(save_path)
         dump_json(coco_annotations, save_path)
 
-    def get_yolo_datas(self, categories=None, remove_empty=True, strict=True):
+    def get_yolo_datas(self, data_root, categories=None, remove_empty=True, strict=True):
         categories_ids = self.get_categories_ids(categories)
         print(f"categories_ids is {categories_ids}.")
         """
@@ -313,59 +313,48 @@ class LabelmeDataset:
         """
         yolo_datas = dict()
         for data_id, data in enumerate(self.data_list):
-            stem = str(Path(data.image_path).stem)
-            if yolo_datas.get(stem, None) is not None:
-                print(
-                    "存在相同名称的图像数据:\n{}\n{}".format(
-                        yolo_datas[stem]["image_path"], data.image_path
+            relative_stem = str(Path(data.image_absolute_path).relative_to(data_root)).replace("\\", "/")
+            label_data_list = []
+            cate_contours_list = data.get_categories_contours()
+            for cate_contours in cate_contours_list:
+                cate_id = categories_ids.get(cate_contours["label"], None)
+                if cate_id is None:
+                    # 标注存在多余的类别标注
+                    if strict:
+                        raise Exception(
+                            "存在多余类别标注: {}".format(cate_contours["label"])
+                        )
+                    else:
+                        warnings.warn("存在多余类别标注: {}".format(cate_contours["label"]))
+                        continue
+                contours = cate_contours["contours"]
+                ps = np.concatenate(contours, axis=0)
+                x, y, w, h = cv2.boundingRect(ps.astype(np.float32))
+                w -= 1
+                h -= 1
+                if w < 1 or h < 1:
+                    continue
+                cxp = (x + w / 2) / data.image_width
+                cyp = (y + h / 2) / data.image_height
+                wp = w / data.image_width
+                hp = h / data.image_height
+                label_data_list.append(
+                    (
+                        cate_id,
+                        cxp,
+                        cyp,
+                        wp,
+                        hp,
                     )
                 )
-                if strict:
-                    print(f"Remove {data.image_path}.")
-                else:
-                    raise Exception()
-            else:
-                label_data_list = []
-                cate_contours_list = data.get_categories_contours()
-                for cate_contours in cate_contours_list:
-                    cate_id = categories_ids.get(cate_contours["label"], None)
-                    if cate_id is None:
-                        # 标注存在多余的类别标注
-                        if strict:
-                            raise Exception(
-                                "存在多余类别标注: {}".format(cate_contours["label"])
-                            )
-                        else:
-                            warnings.warn("存在多余类别标注: {}".format(cate_contours["label"]))
-                            continue
-                    contours = cate_contours["contours"]
-                    ps = np.concatenate(contours, axis=0)
-                    x, y, w, h = cv2.boundingRect(ps.astype(np.float32))
-                    w -= 1
-                    h -= 1
-                    if w < 1 or h < 1:
-                        continue
-                    cxp = (x + w / 2) / data.image_width
-                    cyp = (y + h / 2) / data.image_height
-                    wp = w / data.image_width
-                    hp = h / data.image_height
-                    label_data_list.append(
-                        (
-                            cate_id,
-                            cxp,
-                            cyp,
-                            wp,
-                            hp,
-                        )
-                    )
-                if len(label_data_list) == 0 and remove_empty:
-                    warnings.warn(f"不存在有效标注: data_id = {data_id}")
-                    continue
+            if len(label_data_list) == 0 and remove_empty:
+                warnings.warn(f"不存在有效标注: data_id = {data_id}")
+                continue
 
-                yolo_datas[stem] = {
-                    "image_path": data.image_path,
-                    "label_data": label_data_list,
-                }
+            yolo_datas[relative_stem] = {
+                "image_path": data.image_absolute_path,
+                "label_data": label_data_list,
+            }
 
         return yolo_datas
 
@@ -390,8 +379,8 @@ class LabelmeDataset:
     #     with open(save_txt_path, "w") as f:
     #         f.writelines(name_list)
 
-    def save_yolo_dataset(self, data_root, save_dir, **kwargs):
-        yolo_datas = self.get_yolo_datas(**kwargs)
+    def save_yolo_dataset1(self, data_root, save_dir, **kwargs):
+        yolo_datas = self.get_yolo_datas(data_root=data_root, **kwargs)
         name_list = []
         for stem, yolo_data in tqdm(yolo_datas.items()):
             src_image_path = str(Path(data_root) / yolo_data["image_path"])
@@ -410,16 +399,14 @@ class LabelmeDataset:
 
     def save(
         self,
-        save_dir,
     ):
         print(len(self.data_list))
         # 使用label_path为相对路径
-        for data in self.data_list:
-            assert data.label_path is not None
         for data in tqdm(self.data_list):
-            save_path = str(Path(save_dir) / data.label_path)
+            assert data.image_absolute_path is not None
+            save_path = str(Path(data.image_absolute_path).with_suffix(".json"))
             data.save(save_path)
-
+            
     @classmethod
     def build_from_json_paths(cls, json_paths, **kwargs):
         print("loading datas......")
@@ -443,6 +430,65 @@ class LabelmeDataset:
         )
         json_paths = list(json_paths)
         return cls.build_from_json_paths(json_paths, **kwargs)
+    
+    @classmethod
+    def build_from_seg_mask(cls, data_dir, img_pattern, label_fn, color2name: dict):
+        colorenc2name = dict()
+        for color, name in color2name.items():
+            r, g, b = color
+            colorenc2name[r * (2 ** 16) + g * (2 ** 8) + b] = name
+        
+  
+        img_paths = [str(p) for p in Path(data_dir).rglob(img_pattern)]
+        seg_paths = [label_fn(p) for p in img_paths]
+        labelme_data_list = []
+        for i, img_path in enumerate(tqdm(img_paths)):
+            seg_path = seg_paths[i]            
+            seg_map = read_image(seg_path, cv2_imread_flag=cv2.IMREAD_COLOR)
+            assert seg_map.ndim == 3
+            h, w = seg_map.shape[:2]
+                
+            seg_map_enc = seg_map[..., 0].astype(np.uint32)
+            seg_map_enc *= 256
+            seg_map_enc += seg_map[..., 1]
+            seg_map_enc *= 256
+            seg_map_enc += seg_map[..., 2]
+            
+            seg_map_enc_ids = set(seg_map_enc.flatten())
+            labelme_shapes = []
+            group_id = 1
+            for i in seg_map_enc_ids.intersection(colorenc2name.keys()):
+                name = colorenc2name[i]
+                mask = (seg_map_enc == i).astype(np.uint8)
+                contours, _ = cv2.findContours(mask, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_SIMPLE)
+                # contours = [c.reshape((-1, 2)) for c in contours]
+                if len(contours) > 1:
+                    cur_group_id = group_id
+                    group_id += 1
+                else:
+                    cur_group_id = None
+                for c in contours:
+                    labelme_shape = LabelmeShape(
+                        label=name, 
+                        points=[[float(x), float(y)] for x, y in c.reshape((-1, 2))], 
+                        group_id=cur_group_id, 
+                        shape_type="polygon", 
+                        flags={}, 
+                    )
+                    labelme_shapes.append(labelme_shape)
+            labelme_data = LabelmeData(
+                version=None, 
+                flags={}, 
+                shapes=labelme_shapes, 
+                image_path=str(Path(img_path).name), 
+                image_height=h, 
+                image_width=w, 
+                image_absolute_path=img_path,
+            )
+            labelme_data_list.append(labelme_data)
+        return cls(labelme_data_list)
+            
+            
 
     @classmethod
     def build_from_coco_annotations(cls, coco_annotations: COCO):

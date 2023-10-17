@@ -136,7 +136,7 @@ class TransformEstimator:
 
         return T
 
-    def get_trans_by_boersma(self):
+    def get_trans_by_bursa(self):
         # 只能在欧拉角角度较小时使用
         src_points = copy.deepcopy(self.src_points)
         dst_points = copy.deepcopy(self.dst_points)
@@ -194,6 +194,6 @@ if __name__ == "__main__":
     #     x, y, update_mask=[False, False, True, True, True, True]
     # )
     # t_ = estimator.get_trans_by_iter_least_square()
-    t_ = estimator.get_trans_by_boersma()
+    t_ = estimator.get_trans_by_bursa()
     print(t)
     print(t_)

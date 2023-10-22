@@ -65,13 +65,12 @@ class TransformEstimator:
         init_param: Optional[Sequence] = None,
         update_mask: Optional[Sequence] = None,
     ):
-        self.src_points = src_points
-        self.dst_points = dst_points
-        self.npy_dtype = np.float64
+        self.src_points = np.array(src_points, dtype=np.float64)
+        self.dst_points = np.array(dst_points, dtype=np.float64)
         if init_param is None:
-            init_param = np.zeros((6,), dtype=self.npy_dtype)
+            init_param = np.zeros((6,), dtype=np.float64)
         else:
-            init_param = np.array(init_param, dtype=self.npy_dtype)
+            init_param = np.array(init_param, dtype=np.float64)
         assert init_param.ndim == 1 and init_param.shape[0] == 6
         self.init_param = init_param
         if update_mask is None:
@@ -137,6 +136,7 @@ class TransformEstimator:
         return T
 
     def get_trans_by_bursa(self):
+        # 基于bursa建模
         # 只能在欧拉角角度较小时使用
         src_points = copy.deepcopy(self.src_points)
         dst_points = copy.deepcopy(self.dst_points)
@@ -175,25 +175,70 @@ class TransformEstimator:
 
         return trans
 
+    def get_trans_by_svd(self):
+        src_points = copy.deepcopy(self.src_points)
+        dst_points = copy.deepcopy(self.dst_points)
 
-if __name__ == "__main__":
-    param = np.random.rand(6)
-    param[:3] *= 0.01
-    # param[3:] *= np.random.randint(-10, 10)
-    t = np.eye(4, dtype=np.float64)
-    t[:3, :3] = eulerAngles2rotationMat(*param[:3])
-    t[:3, 3] = param[3:]
-    print(param)
+        # 1.计算质心
+        src_centroid = np.mean(src_points, axis=0)
+        dst_centroid = np.mean(dst_points, axis=0)
 
-    n = 1000000
-    x = np.random.rand(n, 3)
-    y = np.dot(t[:3, :3], x.T).T + t[:3, 3]
+        # 2.去中心化
+        src_points = src_points - src_centroid
+        dst_points = dst_points - dst_centroid
 
-    estimator = TransformEstimator(x, y)
-    # estimator = TransformEstimator(
-    #     x, y, update_mask=[False, False, True, True, True, True]
-    # )
-    # t_ = estimator.get_trans_by_iter_least_square()
-    t_ = estimator.get_trans_by_bursa()
-    print(t)
-    print(t_)
+        # 构建协方差矩阵
+        cov_matrix = src_points.T @ dst_points
+
+        # 奇异值分解
+        U, S, Vt = np.linalg.svd(cov_matrix)
+
+        # 计算旋转矩阵
+        R = Vt.T @ U.T
+        # 处理反射变换
+        if np.linalg.det(R) < 0:
+            Vt[2, :] *= -1
+            R = Vt.T @ U.T
+
+        theta = np.array(rotationMat2eulerAngles(R))
+        theta[~self.update_mask[:3]] = 0
+        R = eulerAngles2rotationMat(*theta)
+
+
+        # 计算平移向量，并将X和Y坐标设置为0
+        t = np.zeros(3, dtype=np.float64)
+        # print((dst_centroid - src_centroid)[self.update_mask[3:6]])
+        t[self.update_mask[3:6]] = (dst_centroid - src_centroid)[self.update_mask[3:6]]
+        # if self.update_mask[3]:
+        # t[2] = -src_centroid[2] + dst_centroid[2]
+
+        # 构建变换矩阵
+        T = np.eye(4)
+        T[:3, :3] = R
+        T[:3, 3] = t
+
+        return T
+
+
+
+# if __name__ == "__main__":
+#     param = np.random.rand(6)
+#     param[:3] *= 0.01
+#     # param[3:] *= np.random.randint(-10, 10)
+#     t = np.eye(4, dtype=np.float64)
+#     t[:3, :3] = eulerAngles2rotationMat(*param[:3])
+#     t[:3, 3] = param[3:]
+#     print(param)
+#
+#     n = 1000000
+#     x = np.random.rand(n, 3)
+#     y = np.dot(t[:3, :3], x.T).T + t[:3, 3]
+#
+#     estimator = TransformEstimator(x, y)
+#     # estimator = TransformEstimator(
+#     #     x, y, update_mask=[False, False, True, True, True, True]
+#     # )
+#     # t_ = estimator.get_trans_by_iter_least_square()
+#     t_ = estimator.get_trans_by_bursa()
+#     print(t)
+#     print(t_)
